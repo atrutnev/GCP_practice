@@ -1,0 +1,56 @@
+---
+- name: Install required software
+  hosts: workers
+  become: yes
+  # remote_user: root
+
+  tasks:
+  - name: Install Git
+    apt:
+      name: git
+      state: latest
+      update_cache: yes
+  
+  - name: Install Java
+    apt:
+      name: default-jre
+      state: latest
+      update_cache: yes
+
+  - name: Install required system packages for Docker
+    apt:
+      name: "{{ item }}"
+      state: latest
+      update_cache: yes
+    loop: [ 'apt-transport-https', 'ca-certificates', 'curl', 'gnupg', 'lsb-release']
+  
+  - name: Add Docker GPG apt Key
+    apt_key:
+      url: https://download.docker.com/linux/debian/gpg
+      state: present
+
+  - name: Set up Docker repository
+    apt_repository:
+        repo: deb https://download.docker.com/linux/debian buster stable
+        state: present
+  
+  - name: Install Docker Engine
+    apt:
+      name: "{{ item }}"
+      state: latest
+      update_cache: yes
+    loop: [ 'docker-ce', 'docker-ce-cli', 'containerd.io']
+  
+  - name: Enable Docker and Containerd services on boot and ensure they are not masked
+    systemd:
+      name: "{{ item }}"
+      enabled: yes
+      masked: no
+    loop: [ 'docker.service', 'containerd.service' ]
+
+  - name: Make sure services are running
+    systemd:
+      name: "{{ item }}"
+      state: started
+    loop: [ 'docker.service', 'containerd.service' ]
+  
